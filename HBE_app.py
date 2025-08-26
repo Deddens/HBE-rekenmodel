@@ -6,13 +6,12 @@ Created on Mon Aug 25 15:02:17 2025
 """
 
 import streamlit as st
-import matplotlib.pyplot as plt
 import numpy as np
 
 # Streamlit configuratie
 st.set_page_config(page_title="HBE Blendprijs Rekenmodel", layout="centered")
 
-st.title("🔄 HBE Blendprijs Rekenmodel – Volledige Berekening")
+st.title("HBE Rekenmodel (alle op massa-basis en niet op energie-basis)")
 
 # Invoer
 volume = st.number_input("Totaal volume (MT)", min_value=0.0, value=100.0)
@@ -26,7 +25,7 @@ hbe_waarde = st.number_input("HBE-marktwaarde (€/GJ)", min_value=0.0, value=15
 multiplier = 0.8  # Vast
 
 prijs_bio = st.number_input("Prijs Bio (€/MT)", min_value=0.0, value=1200.0)
-prijs_fossiel = st.number_input("Prijs Fossiel (€/MT)", min_value=0.0, value=900.0)
+prijs_fossiel = st.number_input("Prijs Fossiel (€/MT)", min_value=0.0, value=550.0)
 
 # Berekeningen
 bio_frac = bio_percentage / 100
@@ -42,18 +41,21 @@ hbe_korting_mt = hbe_kosten_totaal / volume
 netto_mt = blendprijs_mt - hbe_korting_mt
 
 # Resultaten
-st.subheader("📊 Resultaten")
+st.subheader("Resultaten")
 st.write(f"**Aandeel Fossiel:** {fossiel_percentage:.1f}%")
-st.write(f"**HBE-kosten (€/GJ):** €{hbe_kosten_gj:.2f}")
-st.write(f"**HBE-kosten (€/MT):** €{hbe_kosten_mt:.2f}")
-st.write(f"**HBE-kosten totaal (€):** €{hbe_kosten_totaal:,.2f}")
+st.write(f"**HBE scheepvaart reductie (€/GJ):** €{hbe_kosten_gj:.2f}")
+st.write(f"**HBE reductie (€/MT):** €{hbe_kosten_mt:.2f}")
+st.write(f"**HBE reductie totaal (€):** €{hbe_kosten_totaal:,.2f}")
 
-st.write(f"**Prijs Blend totaal (€):** €{blendprijs_totaal:,.2f}")
+st.write(f"**Bruto Prijs (€):** €{blendprijs_totaal:,.2f}")
 st.write(f"**Prijs Blend (€/MT):** €{blendprijs_mt:.2f}")
 st.write(f"**HBE-korting (€/MT):** €{hbe_korting_mt:.2f}")
 st.write(f"**Totaal (€/MT):** €{netto_mt:.2f}")
 
-# Toevoegen van grafiek
+# Toevoegen van interactieve grafiek met downloadknop
+import plotly.graph_objects as go
+from io import BytesIO
+
 bio_range = np.arange(0, 101, 1)
 blendprijzen = []
 netto_prijzen = []
@@ -67,17 +69,38 @@ for pct in bio_range:
     blendprijzen.append(blendprijs_loop)
     netto_prijzen.append(netto_loop)
 
-fig, ax = plt.subplots(figsize=(10, 5))
-ax.plot(bio_range, blendprijzen, label='Blendprijs (€/MT)', color='blue')
-ax.plot(bio_range, netto_prijzen, label='Netto prijs (€/MT)', color='green')
-ax.axvline(bio_percentage, color='gray', linestyle='--')
-ax.set_xlabel('Bio-percentage (%)')
-ax.set_ylabel('Prijs (€/MT)')
-ax.set_title('Blendprijs en Netto prijs vs. Bio-percentage')
-ax.legend()
-ax.grid(True)
-st.pyplot(fig)
+fig = go.Figure()
+fig.add_trace(go.Scatter(x=bio_range, y=blendprijzen, mode='lines', name='Blendprijs (€/MT)'))
+fig.add_trace(go.Scatter(x=bio_range, y=netto_prijzen, mode='lines', name='Netto prijs (€/MT)'))
+fig.add_trace(go.Scatter(x=bio_range, y=[prijs_fossiel]*len(bio_range), mode='lines', name='Fossiele prijs (€/MT)', line=dict(dash='dash')))
+fig.add_trace(go.Scatter(x=bio_range, y=[prijs_bio]*len(bio_range), mode='lines', name='Bioprijs (€/MT)', line=dict(dash='dash')))
+
+fig.add_vline(x=bio_percentage, line=dict(color='gray', dash='dot'))
+fig.update_layout(
+    title='Prijsontwikkeling vs. Bio-percentage',
+    xaxis_title='Bio-percentage (%)',
+    yaxis_title='Prijs (€/MT)',
+    hovermode='x unified'
+)
+
+# Downloadknop
+buffer = BytesIO()
+fig.write_image(buffer, format='png')
+buffer.seek(0)
+
+st.download_button(
+    label="Download grafiek als PNG",
+    data=buffer,
+    file_name="plotly_grafiek.png",
+    mime="image/png"
+)
+
+# Grafiek tonen
+st.plotly_chart(fig)
+
+
+
 
 # Footer
 st.markdown("---")
-st.caption("Gemaakt door Maarten Deddens – Volledige HBE Berekening volgens Excel-logica")
+st.caption("Gemaakt door M. Deddens Inc.™ – Volledige HBE Berekening volgens Excel-logica")
