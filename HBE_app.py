@@ -54,7 +54,6 @@ st.write(f"**Totaal (€/MT):** €{netto_mt:.2f}")
 
 # Toevoegen van interactieve grafiek met downloadknop
 import plotly.graph_objects as go
-from io import BytesIO
 
 bio_range = np.arange(0, 101, 1)
 blendprijzen = []
@@ -83,17 +82,6 @@ fig.update_layout(
     hovermode='x unified'
 )
 
-# Downloadknop
-buffer = BytesIO()
-fig.write_image(buffer, format='png')
-buffer.seek(0)
-
-st.download_button(
-    label="Download grafiek als PNG",
-    data=buffer,
-    file_name="plotly_grafiek.png",
-    mime="image/png"
-)
 
 # Grafiek tonen
 st.plotly_chart(fig)
